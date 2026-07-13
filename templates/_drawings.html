@@ -1,0 +1,16 @@
+<ul class="space-y-0.5">
+  {% for d in drawings %}
+  <li class="group flex items-center gap-1 rounded-md px-2 py-1.5 text-sm hover:bg-slate-100 {{ 'bg-indigo-50' if d['id'] == current }}">
+    <a href="/d/{{ d['id'] }}" class="min-w-0 flex-1 truncate {{ 'font-medium text-indigo-700' if d['id'] == current }}">{{ d['name'] }}</a>
+    <button hx-delete="/d/{{ d['id'] }}?current={{ current }}"
+            hx-confirm="Delete “{{ d['name'] }}”? This cannot be undone."
+            hx-swap="none"
+            title="Delete"
+            class="hidden shrink-0 rounded p-0.5 text-slate-400 hover:text-red-600 group-hover:block">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13"/></svg>
+    </button>
+  </li>
+  {% else %}
+  <li class="px-2 py-1.5 text-sm text-slate-400">No drawings yet</li>
+  {% endfor %}
+</ul>

@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .tool-btn {
+    @apply grid h-9 w-9 place-items-center rounded-lg text-slate-600 hover:bg-slate-100;
+  }
+  .tool-active {
+    @apply bg-indigo-100 text-indigo-700 hover:bg-indigo-100;
+  }
+  .swatch-active {
+    @apply ring-2 ring-indigo-500 ring-offset-1;
+  }
+}

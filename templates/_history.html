@@ -1,0 +1,22 @@
+{% macro ago(t) -%}
+  {%- set d = (now - t) | int -%}
+  {%- if d < 60 %}{{ d }}s ago
+  {%- elif d < 3600 %}{{ (d / 60) | int }}m ago
+  {%- elif d < 86400 %}{{ (d / 3600) | int }}h ago
+  {%- else %}{{ (d / 86400) | int }}d ago{% endif -%}
+{%- endmacro %}
+
+<ul class="space-y-0.5">
+  {% for r in revs %}
+  <li class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-slate-100">
+    <span class="flex-1 text-slate-600">{{ ago(r['saved_at']) }}</span>
+    <span class="text-xs tabular-nums text-slate-400">{{ r['shapes'] }} shape{{ '' if r['shapes'] == 1 else 's' }}</span>
+    <button hx-post="/d/{{ did }}/restore/{{ r['id'] }}"
+            hx-confirm="Restore this version ({{ r['shapes'] }} shapes)? The current state is snapshotted first."
+            hx-swap="none"
+            class="rounded border border-slate-300 px-1.5 py-0.5 text-xs text-slate-600 hover:bg-white">Restore</button>
+  </li>
+  {% else %}
+  <li class="px-2 py-1.5 text-sm text-slate-400">No snapshots yet</li>
+  {% endfor %}
+</ul>
