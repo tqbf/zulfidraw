@@ -42,8 +42,11 @@ size in grid units — lines and polygon segments read as their iso-axis
 decomposition, boxes as `a×b×c` — so you can draw to scale.
 
 Marquee-select with the select tool, restyle the selection from the left panel
-(stroke, fill, width, dashes, edges, arrowheads, opacity, z-order), and export
-the drawing as an SVG from the menu.
+(stroke, fill, width, dashes, edges, arrowheads, font size, opacity, z-order),
+and export the drawing as an SVG from the menu. Stroke widths and font sizes are
+tuned so a large (~100×100 cell) drawing stays legible when zoomed to fit, and
+arrowheads scale with stroke width. The font-size control appears when the text
+tool is active or a text shape is selected.
 
 Edits autosave about a second after you stop. Because autosave overwrites the
 document, the server also keeps snapshots — one per minute of active editing,

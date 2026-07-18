@@ -15,7 +15,12 @@
 
   const STROKES = ["#1e293b", "#e11d48", "#2563eb", "#059669", "#d97706", "#7c3aed"];
   const FILLS = ["transparent", "#f1f5f9", "#fecdd3", "#bfdbfe", "#a7f3d0", "#fde68a", "#ddd6fe"];
-  const WIDTHS = [["S", 1.5], ["M", 2.5], ["L", 4]];
+  // Widths / font sizes are world units, scaled for the grid step S: a stroke is
+  // a useful fraction of a cell, and a size-M label is a couple of cells tall, so
+  // both stay legible on a large (~100×100 cell) drawing when zoomed to fit.
+  const WIDTHS = [["S", 3], ["M", 5], ["L", 9]];
+  const FONT_SIZES = [["S", 24, 12], ["M", 48, 15], ["L", 80, 18], ["XL", 128, 22]];
+  const HEAD_SCALE = 4.5;     // arrowhead length as a multiple of stroke width
   const DASHES = ["solid", "dashed", "dotted"];
   const ROUND_R = 7; // corner radius (world units) when edge rounding is on
 
@@ -26,7 +31,7 @@
     : { tx: window.innerWidth / 2, ty: window.innerHeight / 2, k: 1 };
 
   let tool = "select";
-  let style = { stroke: STROKES[0], fill: "transparent", sw: 2.5, dash: "solid", round: false, op: 1, heads: "end" };
+  let style = { stroke: STROKES[0], fill: "transparent", sw: 5, dash: "solid", round: false, op: 1, heads: "end", size: 48 };
   let sel = new Set();
   let mode = null;          // active interaction state machine
   let spaceDown = false;
@@ -194,7 +199,7 @@
     const len = Math.hypot(dx, dy);
     if (len < 1e-6) return "";
     const ux = dx / len, uy = dy / len;
-    const L = Math.min(9 + sh.sw * 2.2, len);      // never longer than the segment
+    const L = Math.min(sh.sw * HEAD_SCALE, len);   // scales with stroke; never longer than the segment
     const A = 0.42;                                 // half-angle, radians
     const cos = Math.cos(A), sin = Math.sin(A);
     const barb = (s) => [
@@ -466,6 +471,7 @@
     dash: style.dash, round: style.round, op: style.op, ...props,
   });
   const hasArrow = () => shapes.some(s => sel.has(s.id) && s.type === "arrow");
+  const hasText = () => shapes.some(s => sel.has(s.id) && s.type === "text");
   const HINTS = {
     select: "Drag empty space to box-select (Shift adds) · drag to move · arrows nudge · handles resize (Shift = uniform) · Ctrl+C/X/V · Del",
     pan: "Drag to pan · scroll to zoom",
@@ -740,7 +746,7 @@
 
   // ---------- text input overlay ----------
   function openTextInput(p, existing) {
-    const size = existing ? existing.size : 20;
+    const size = existing ? existing.size : style.size;
     const input = document.createElement("input");
     input.value = existing ? existing.text : "";
     input.className = "absolute z-30 bg-transparent border border-indigo-300 rounded px-0.5 outline-none";
@@ -829,6 +835,7 @@
       if (patch.fill && !["line", "arrow", "text"].includes(sh.type)) sh.fill = patch.fill;
       if (patch.heads && sh.type === "arrow") sh.heads = patch.heads;
       if (patch.sw) sh.sw = patch.sw;
+      if (patch.size && sh.type === "text") sh.size = patch.size;
       if (patch.dash) sh.dash = patch.dash;
       if (patch.round !== undefined) sh.round = patch.round;
       if (patch.op !== undefined) sh.op = patch.op;
@@ -992,6 +999,12 @@
   const widthEl = buildGroup("widthBtns",
     WIDTHS.map(([l, w]) => ({ v: w, html: l, title: l + " stroke", cls: BTN })), "sw", parseFloat);
 
+  // font size — an "A" glyph at increasing display size; only shown for text
+  const fontEl = buildGroup("fontBtns", FONT_SIZES.map(([l, sz, disp]) =>
+    ({ v: sz, html: `<span style="font-size:${disp}px;line-height:1">A</span>`, title: l + " text", cls: BTN })),
+    "size", parseFloat);
+  const fontRow = document.getElementById("fontRow");
+
   const dashIcon = d => {
     const da = d === "dashed" ? "6 4" : d === "dotted" ? "0.1 4" : "";
     return `<svg width="24" height="8" viewBox="0 0 24 8"><path d="M2 4h20" stroke="currentColor" stroke-width="2"
@@ -1059,8 +1072,12 @@
     }
     const selHeads = selShapes.filter(s => s.type === "arrow").map(s => s.heads || "end");
     if (selHeads.length && selHeads.every(v => v === selHeads[0])) style.heads = selHeads[0];
-    // the arrowhead control only means something for arrows
+    const selSizes = selShapes.filter(s => s.type === "text").map(s => s.size);
+    if (selSizes.length && selSizes.every(v => v === selSizes[0])) style.size = selSizes[0];
+    // the arrowhead and font-size controls only mean something for arrows / text
     headsRow.classList.toggle("hidden", !(tool === "arrow" || hasArrow()));
+    fontRow.classList.toggle("hidden", !(tool === "text" || hasText()));
+    markActive(fontEl, fontEl.querySelector(`[data-v="${style.size}"]`));
     markActive(headsEl, headsEl.querySelector(`[data-v="${style.heads}"]`));
     markActive(strokeEl, strokeEl.querySelector(`[data-v="${style.stroke}"]`));
     markActive(fillEl, fillEl.querySelector(`[data-v="${style.fill}"]`));

@@ -75,7 +75,7 @@ const SHOTS = process.env.SHOT_DIR || require("os").tmpdir();
 
   // 4. mutate the selected shape via the panel (dotted, width L)
   await click('#dashBtns [data-v="dotted"]');
-  await click('#widthBtns [data-v="4"]');
+  await click('#widthBtns [data-v="9"]');
   const mutated = await gAttrs(0);
 
   // 5. undo the width change, then reload and confirm persistence
