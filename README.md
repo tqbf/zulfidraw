@@ -37,6 +37,10 @@ to expose it), `ZULFIDRAW_DB` to put the database somewhere else.
 | arrows | nudge one lattice step (hold `Alt` for one pixel) |
 | `Delete` / `Escape` | delete selection / cancel what you're drawing |
 
+While you drag a shape out (or resize one), a label next to the cursor shows its
+size in grid units — lines and polygon segments read as their iso-axis
+decomposition, boxes as `a×b×c` — so you can draw to scale.
+
 Marquee-select with the select tool, restyle the selection from the left panel
 (stroke, fill, width, dashes, edges, arrowheads, opacity, z-order), and export
 the drawing as an SVG from the menu.

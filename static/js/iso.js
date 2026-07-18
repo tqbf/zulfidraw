@@ -65,8 +65,21 @@
 
   // ---------- geometry ----------
   const add = (p, q) => [p[0] + q[0], p[1] + q[1]];
+  const sub = (p, q) => [p[0] - q[0], p[1] - q[1]];
   const mul = (p, n) => [p[0] * n, p[1] * n];
   const eq = (p, q) => Math.abs(p[0] - q[0]) < 1e-6 && Math.abs(p[1] - q[1]) < 1e-6;
+
+  // Decompose a delta into iso-axis units [along U, along VX, vertical].
+  // W = U + VX makes the split ambiguous; a shared a/b sign reads as vertical,
+  // so a straight-up drag is height, not a 1×1 in-plane diagonal.
+  function isoDims(d) {
+    let a = (d[0] / H - d[1] / V) / 2;
+    let b = (-d[0] / H - d[1] / V) / 2;
+    let c = 0;
+    if (a * b > 0) { c = Math.sign(a) * Math.min(Math.abs(a), Math.abs(b)); a -= c; b -= c; }
+    return [a, b, c].map(n => Math.abs(Math.round(n * 10) / 10));
+  }
+  const fmtDims = ds => ds.filter(n => n).join("×");
 
   function screenToWorld(x, y) {
     return [(x - view.tx) / view.k, (y - view.ty) / view.k];
@@ -306,6 +319,33 @@
 
   const scaleInt = (v, f) => (v === 0 ? 0 : Math.max(1, Math.round(v * f)));
 
+  // Live size readout for the active interaction, in lattice units — the
+  // scale-drawing affordance. Boxes report their defining a×b×c (zeros kept:
+  // 0×5 is a wall); segments report the iso decomposition of their delta.
+  function modeDims() {
+    if (!mode) return "";
+    if (mode.type === "line" && mode.end) return fmtDims(isoDims(sub(mode.end, mode.start)));
+    if ((mode.type === "poly" || mode.type === "arrow") && mode.cursor && mode.pts.length)
+      return fmtDims(isoDims(sub(mode.cursor, mode.pts[mode.pts.length - 1])));
+    if (mode.type === "box-foot") return `${Math.abs(mode.a)}×${Math.abs(mode.b)}`;
+    if (mode.type === "box-height") return `${mode.a}×${mode.b}×${mode.c}`;
+    if (mode.type === "axis" || mode.type === "vtx") {
+      const sh = shapes.find(s => s.id === mode.id);
+      if (!sh) return "";
+      if (sh.type === "box") return `${sh.a}×${sh.b}×${sh.c}`;
+      if (isPath(sh) && sh.pts.length > 1) {
+        const o = sh.pts[mode.i - 1] || sh.pts[mode.i + 1];
+        return fmtDims(isoDims(sub(sh.pts[mode.i], o)));
+      }
+      return "";
+    }
+    if (mode.type === "scale" && mode.orig.size === 1) {
+      const sh = shapes.find(s => s.id === [...mode.orig.keys()][0]);
+      if (sh?.type === "box") return `${sh.a}×${sh.b}×${sh.c}`;
+    }
+    return "";
+  }
+
   function renderTemp() {
     const k = view.k;
     let out = "";
@@ -329,14 +369,17 @@
       } else if (mode.type === "box-foot" || mode.type === "box-height") {
         const n = normalizeBox(mode.p, mode.a || 0, mode.b || 0);
         out += ghost(styled({ type: "box", p: n.p, a: n.a, b: n.b, c: mode.c || 0 }));
-        if (mode.type === "box-height") {
-          const label = `${mode.a}×${mode.b}×${mode.c}`;
-          out += `<text x="${mode.p[0] + 12 / k}" y="${mode.p[1]}" font-size="${12 / k}" fill="#6366f1" font-family="${FONT}">${label}</text>`;
-        }
       } else if (mode.type === "marquee" && mode.cur) {
         const r = marqueeRect(mode);
         out += `<rect x="${r.x1}" y="${r.y1}" width="${r.x2 - r.x1}" height="${r.y2 - r.y1}"
           fill="#6366f1" fill-opacity="0.08" stroke="#6366f1" stroke-width="${1 / k}" stroke-dasharray="${4 / k} ${3 / k}"/>`;
+      }
+      const dims = modeDims();
+      if (dims && cursorPt) {
+        out += `<text id="dimLabel" x="${cursorPt[0] + 12 / k}" y="${cursorPt[1] - 10 / k}"
+          font-size="${12 / k}" font-weight="600" font-family="${FONT}" fill="#6366f1"
+          paint-order="stroke" stroke="#fff" stroke-width="${3 / k}" stroke-linejoin="round"
+          pointer-events="none">${dims}</text>`;
       }
     }
     tempLayer.innerHTML = out;
